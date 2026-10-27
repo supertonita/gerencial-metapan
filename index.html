@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Super Toñita - App de Caja y Proveedores</title>
+  
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+
+  <style>
+    :root {
+      --accent-blue: #1d528d;
+      --green-btn: #28a745;
+      --red-btn: #d9534f;
+      --yellow-bar: #d99a27;
+      --bg-light: #f4f6f9;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, sans-serif; font-size: 13px; }
+    body { background-color: var(--bg-light); color: #222; padding: 10px; padding-bottom: 75px; display: flex; flex-direction: column; min-height: 100vh; }
+
+    header { background: #1e3a5f; color: #fff; padding: 12px; border-radius: 8px; text-align: center; margin-bottom: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+    header h2 { font-size: 16px; text-transform: uppercase; }
+    header p { font-size: 11px; opacity: 0.85; margin-top: 2px; }
+
+    .section-module { display: none; flex-direction: column; flex: 1; }
+    .section-module.active { display: flex; }
+
+    .card-box { background: #fff; border: 1px solid #d0d7e1; border-radius: 8px; padding: 15px; margin-bottom: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); position: relative; }
+    .card-box h3 { color: var(--accent-blue); font-size: 15px; margin-bottom: 12px; border-bottom: 1px solid #eee; padding-bottom: 6px; }
+
+    .field-group { margin-bottom: 12px; position: relative; }
+    .field-group label { display: block; font-weight: bold; margin-bottom: 4px; color: #333; }
+    .field-group input, .field-group select { width: 100%; padding: 10px; border: 1px solid #7f9db9; border-radius: 5px; font-size: 14px; outline: none; }
+
+    .autocomplete-list { position: absolute; top: 100%; left: 0; right: 0; background: #fff; border: 1px solid #7f9db9; border-top: none; max-height: 120px; overflow-y: auto; z-index: 50; box-shadow: 0 4px 8px rgba(0,0,0,0.1); border-radius: 0 0 5px 5px; }
+    .autocomplete-item { padding: 8px 10px; cursor: pointer; border-bottom: 1px solid #f0f0f0; font-size: 13px; }
+    .autocomplete-item:hover { background: #eef2f7; font-weight: bold; }
+
+    .btn-submit { width: 100%; padding: 12px; border: none; border-radius: 6px; font-size: 15px; font-weight: bold; color: #fff; cursor: pointer; margin-top: 5px; }
+    .btn-submit.venta { background: var(--accent-blue); }
+    .btn-submit.compra { background: var(--red-btn); }
+    .btn-submit.pedido { background: var(--yellow-bar); color: #000; }
+
+    .resumen-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px; }
+    .resumen-card { background: #fff; border: 1px solid #cbd3df; padding: 12px; border-radius: 6px; text-align: center; }
+    .resumen-card h4 { font-size: 10px; color: #666; text-transform: uppercase; margin-bottom: 2px; }
+    .resumen-card .val { font-size: 18px; font-weight: bold; }
+
+    .table-container { overflow-x: auto; max-height: 230px; }
+    table { width: 100%; border-collapse: collapse; text-align: left; font-size: 12px; }
+    th { background: #e6ebf2; padding: 8px; border-bottom: 1px solid #cbd3df; position: sticky; top: 0; }
+    td { padding: 8px; border-bottom: 1px solid #eee; }
+
+    .floating-nav { position: fixed; bottom: 0; left: 0; right: 0; background: #1e3a5f; display: grid; grid-template-columns: repeat(4, 1fr); padding: 8px; gap: 6px; box-shadow: 0 -4px 10px rgba(0,0,0,0.15); z-index: 1000; border-top: 1px solid #2c4d75; }
+    .nav-btn-app { background: transparent; border: none; color: #cbd3df; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 6px 0; border-radius: 6px; cursor: pointer; font-size: 11px; font-weight: bold; }
+    .nav-btn-app span.icon { font-size: 18px; margin-bottom: 2px; }
+    .nav-btn-app.active { background: var(--yellow-bar); color: #000; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h2>Super Toñita</h2>
+    <p>Caja y Operaciones — Sucursal: <b id="lblNombreSucursal" style="color: #ffc107;">CORINTO</b></p>
+  </header>
+
+  <div id="modVentas" class="section-module active">
+    <div class="card-box">
+      <h3>💰 Registrar Venta de Turno</h3>
+      <form id="formCajeroVenta" onsubmit="guardarVentaCajero(event)">
+        <div class="field-group">
+          <label>Forma de Pago:</label>
+          <select id="vMetodo">
+            <option value="efectivo">💵 Efectivo (Gaveta)</option>
+            <option value="tarjeta">💳 Tarjeta (Aplica 3.5% Comisión)</option>
+          </select>
+        </div>
+        <div class="field-group">
+          <label>Monto de la Venta ($):</label>
+          <input type="number" id="vMonto" step="0.01" required placeholder="0.00" style="font-weight: bold; font-size: 18px; text-align: right;">
+        </div>
+        <div class="field-group">
+          <label>Cajero Responsable:</label>
+          <input type="text" id="vCajero" required placeholder="Nombre">
+        </div>
+        <button type="submit" class="btn-submit venta">✔ Guardar Venta</button>
+      </form>
+    </div>
+
+    <div class="resumen-grid">
+      <div class="resumen-card">
+        <h4>Efectivo en Gaveta</h4>
+        <div class="val" id="lblEfecGaveta" style="color: var(--green-btn);">$0.00</div>
+      </div>
+      <div class="resumen-card">
+        <h4>Tarjeta (Neto Banco)</h4>
+        <div class="val" id="lblTarjNeto" style="color: var(--accent-blue);">$0.00</div>
+      </div>
+    </div>
+  </div>
+
+  <div id="modCompras" class="section-module">
+    <div class="card-box">
+      <h3>🛒 Registrar Compra a Proveedor</h3>
+      <form id="formCajeroCompra" onsubmit="guardarCompraCajero(event)">
+        <div class="field-group">
+          <label>Proveedor / Descripción:</label>
+          <input type="text" id="cProveedor" required autocomplete="off" placeholder="Escribe para buscar proveedor..." oninput="filtrarProveedoresCompra()">
+          <div id="listaAutoCompra" class="autocomplete-list" style="display: none;"></div>
+        </div>
+        <div class="field-group">
+          <label>Monto Pagado ($):</label>
+          <input type="number" id="cMonto" step="0.01" required placeholder="0.00" style="font-weight: bold; font-size: 18px; text-align: right; color: var(--red-btn);">
+        </div>
+        <div class="field-group">
+          <label>Nº de Factura (Opcional):</label>
+          <input type="text" id="cFactura" placeholder="FAC-1234">
+        </div>
+        <button type="submit" class="btn-submit compra">✔ Registrar Compra</button>
+      </form>
+    </div>
+  </div>
+
+  <div id="modPedidos" class="section-module">
+    <div class="card-box">
+      <h3>📅 Agendar Nuevo Pedido / Proveedor</h3>
+      <form id="formCajeroPedido" onsubmit="agendarPedidoCajero(event)">
+        <div class="field-group">
+          <label>Proveedor:</label>
+          <input type="text" id="pProveedor" required autocomplete="off" placeholder="Escribe para buscar proveedor..." oninput="filtrarProveedoresPedido()">
+          <div id="listaAutoPedido" class="autocomplete-list" style="display: none;"></div>
+        </div>
+        <div class="field-group">
+          <label>Monto Estimado ($):</label>
+          <input type="number" id="pMonto" step="0.01" required placeholder="0.00" style="font-weight: bold; font-size: 18px; text-align: right;">
+        </div>
+        <div class="field-group">
+          <label>Día de Entrega / Visita:</label>
+          <input type="date" id="pFecha" required style="font-size: 15px; font-weight: bold;">
+        </div>
+        <div class="field-group">
+          <label>Observaciones / Productos:</label>
+          <input type="text" id="pNotas" placeholder="Ej: Pedido de lácteos">
+        </div>
+        <button type="submit" class="btn-submit pedido">📌 Agendar Pedido</button>
+      </form>
+    </div>
+  </div>
+
+  <div id="modRecibir" class="section-module">
+    <div class="card-box">
+      <h3>✅ Recibir Pedidos por Fecha</h3>
+      <div class="field-group">
+        <label>Seleccionar Día a Consultar:</label>
+        <input type="date" id="inputFechaRecibir" onchange="renderRecibirPorFecha()" style="font-size: 15px; font-weight: bold;">
+      </div>
+    </div>
+    <div class="card-box" style="flex: 1; display: flex; flex-direction: column;">
+      <h3>📦 Pedidos Agendados</h3>
+      <div class="table-container">
+        <table>
+          <thead><tr><th>Proveedor</th><th>Monto Est.</th><th>Observaciones</th><th>Acción</th></tr></thead>
+          <tbody id="tablaRecibirHoyBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="card-box" style="flex: 1; display: flex; flex-direction: column;">
+    <h3>📜 Movimientos de Hoy</h3>
+    <div class="table-container">
+      <table>
+        <thead><tr><th>Hora</th><th>Tipo / Detalle</th><th>Monto</th></tr></thead>
+        <tbody id="tablaRegistrosHoyBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <nav class="floating-nav">
+    <button class="nav-btn-app active" id="navVentas" onclick="switchModulo('ventas')"><span class="icon">💰</span> Ventas</button>
+    <button class="nav-btn-app" id="navCompras" onclick="switchModulo('compras')"><span class="icon">🛒</span> Compras</button>
+    <button class="nav-btn-app" id="navPedidos" onclick="switchModulo('pedidos')"><span class="icon">📋</span> Pedidos</button>
+    <button class="nav-btn-app" id="navRecibir" onclick="switchModulo('recibir')"><span class="icon">✅</span> Recibir</button>
+  </nav>
+
+  <script>
+    // ⚙️ CAMBIA ESTA VARIABLE SEGÚN LA SUCURSAL ('corinto', 'los_fuentes', 'metapan')
+    const SUCURSAL_ACTIVA = 'metapan';
+
+    // ⚙️ CONFIGURA TU FIREBASE AQUÍ (Debe ser idéntico al del Panel Gerencial)
+    const firebaseConfig = {
+      apiKey: "TU_API_KEY_AQUI",
+      authDomain: "tu-proyecto.firebaseapp.com",
+      projectId: "tu-proyecto",
+      storageBucket: "tu-proyecto.appspot.com",
+      messagingSenderId: "123456",
+      appId: "1:123456:web:abcdef"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    let datosSucursalLocal = { saldoAsignado: 3500.00, compras: [], ventas: [], agenda: [], proveedores: ["Distribuidora La Toñita", "Lácteos San Carlos"] };
+
+    // Sincronizar en tiempo real los datos de la sucursal activa
+    db.collection('sucursales').doc(SUCURSAL_ACTIVA).onSnapshot(doc => {
+      if (doc.exists) {
+        datosSucursalLocal = doc.data();
+        renderVistaCajero();
+        renderRecibirPorFecha();
+      } else {
+        // Inicializar documento si no existe
+        db.collection('sucursales').doc(SUCURSAL_ACTIVA).set(datosSucursalLocal);
+      }
+    });
+
+    function guardarEnNube() {
+      db.collection('sucursales').doc(SUCURSAL_ACTIVA).set(datosSucursalLocal, { merge: true });
+    }
+
+    function switchModulo(mod) {
+      document.querySelectorAll('.section-module').forEach(s => s.classList.remove('active'));
+      document.querySelectorAll('.nav-btn-app').forEach(b => b.classList.remove('active'));
+
+      if(mod === 'ventas') {
+        document.getElementById('modVentas').classList.add('active');
+        document.getElementById('navVentas').classList.add('active');
+      } else if(mod === 'compras') {
+        document.getElementById('modCompras').classList.add('active');
+        document.getElementById('navCompras').classList.add('active');
+      } else if(mod === 'pedidos') {
+        document.getElementById('modPedidos').classList.add('active');
+        document.getElementById('navPedidos').classList.add('active');
+        document.getElementById('pFecha').value = new Date().toISOString().slice(0, 10);
+      } else if(mod === 'recibir') {
+        document.getElementById('modRecibir').classList.add('active');
+        document.getElementById('navRecibir').classList.add('active');
+        let inputFecha = document.getElementById('inputFechaRecibir');
+        let hoy = new Date().toISOString().slice(0, 10);
+        inputFecha.value = hoy;
+        inputFecha.min = hoy;
+        renderRecibirPorFecha();
+      }
+    }
+
+    function filtrarProveedoresCompra() {
+      let val = document.getElementById('cProveedor').value.toLowerCase().trim();
+      let listaDiv = document.getElementById('listaAutoCompra');
+      let provs = datosSucursalLocal.proveedores || [];
+      if(!val) { listaDiv.style.display = 'none'; return; }
+      let filtrados = provs.filter(p => p.toLowerCase().includes(val));
+      if(filtrados.length === 0) { listaDiv.style.display = 'none'; return; }
+      listaDiv.style.display = 'block';
+      listaDiv.innerHTML = filtrados.map(p => `<div class="autocomplete-item" onclick="document.getElementById('cProveedor').value='${p}'; document.getElementById('listaAutoCompra').style.display='none';">${p}</div>`).join('');
+    }
+
+    function filtrarProveedoresPedido() {
+      let val = document.getElementById('pProveedor').value.toLowerCase().trim();
+      let listaDiv = document.getElementById('listaAutoPedido');
+      let provs = datosSucursalLocal.proveedores || [];
+      if(!val) { listaDiv.style.display = 'none'; return; }
+      let filtrados = provs.filter(p => p.toLowerCase().includes(val));
+      if(filtrados.length === 0) { listaDiv.style.display = 'none'; return; }
+      listaDiv.style.display = 'block';
+      listaDiv.innerHTML = filtrados.map(p => `<div class="autocomplete-item" onclick="document.getElementById('pProveedor').value='${p}'; document.getElementById('listaAutoPedido').style.display='none';">${p}</div>`).join('');
+    }
+
+    function guardarVentaCajero(e) {
+      e.preventDefault();
+      const metodo = document.getElementById('vMetodo').value;
+      const monto = parseFloat(document.getElementById('vMonto').value) || 0;
+      const cajero = document.getElementById('vCajero').value.trim();
+
+      const comision = metodo === 'tarjeta' ? (monto * 0.035) : 0;
+      const neto = monto - comision;
+
+      const nuevaVenta = { id: Date.now(), fecha: new Date().toISOString(), metodoPago: metodo, total: monto, comisionTarjeta: comision, montoNeto: neto, cajero };
+
+      if(!datosSucursalLocal.ventas) datosSucursalLocal.ventas = [];
+      datosSucursalLocal.ventas.unshift(nuevaVenta);
+      guardarEnNube();
+
+      document.getElementById('vMonto').value = '';
+      alert("¡Venta registrada y enviada a gerencia!");
+    }
+
+    function guardarCompraCajero(e) {
+      e.preventDefault();
+      const proveedor = document.getElementById('cProveedor').value.trim();
+      const monto = parseFloat(document.getElementById('cMonto').value) || 0;
+      const factura = document.getElementById('cFactura').value.trim();
+
+      const nuevaCompra = { id: Date.now(), fecha: new Date().toISOString(), proveedor, monto, factura };
+      if(!datosSucursalLocal.compras) datosSucursalLocal.compras = [];
+      datosSucursalLocal.compras.unshift(nuevaCompra);
+      guardarEnNube();
+
+      document.getElementById('formCajeroCompra').reset();
+      alert("¡Compra registrada y enviada a gerencia!");
+    }
+
+    function agendarPedidoCajero(e) {
+      e.preventDefault();
+      const proveedor = document.getElementById('pProveedor').value.trim();
+      const monto = parseFloat(document.getElementById('pMonto').value) || 0;
+      const fecha = document.getElementById('pFecha').value;
+      const notas = document.getElementById('pNotas').value.trim();
+
+      const nuevoPedido = { id: Date.now(), proveedor, monto, fechaProg: fecha, notas, estado: 'pendiente' };
+      if(!datosSucursalLocal.agenda) datosSucursalLocal.agenda = [];
+      datosSucursalLocal.agenda.push(nuevoPedido);
+      guardarEnNube();
+
+      document.getElementById('formCajeroPedido').reset();
+      alert("¡Pedido agendado!");
+      switchModulo('recibir');
+    }
+
+    function marcarPedidoRecibidoCajero(id) {
+      let agenda = datosSucursalLocal.agenda || [];
+      let pedido = agenda.find(p => p.id === id);
+      if(!pedido) return;
+
+      if(confirm(`¿Confirmar recepción del pedido de "${pedido.proveedor}" por $${pedido.monto.toFixed(2)}?`)) {
+        pedido.estado = 'recibido';
+        const nuevaCompra = { id: Date.now(), fecha: new Date().toISOString(), proveedor: pedido.proveedor, monto: pedido.monto, factura: 'PEDIDO-AGENDADO' };
+        if(!datosSucursalLocal.compras) datosSucursalLocal.compras = [];
+        datosSucursalLocal.compras.unshift(nuevaCompra);
+        guardarEnNube();
+        alert("¡Pedido recibido y registrado como compra!");
+      }
+    }
+
+    function renderRecibirPorFecha() {
+      let fechaSel = document.getElementById('inputFechaRecibir').value;
+      let agenda = datosSucursalLocal.agenda || [];
+      let filtrados = agenda.filter(p => p.fechaProg === fechaSel && p.estado === 'pendiente');
+      
+      const tbody = document.getElementById('tablaRecibirHoyBody');
+      tbody.innerHTML = filtrados.map(p => `
+        <tr>
+          <td><b>${p.proveedor}</b></td>
+          <td style="color:var(--accent-blue); font-weight:bold;">$${p.monto.toFixed(2)}</td>
+          <td>${p.notas || 'N/A'}</td>
+          <td><button onclick="marcarPedidoRecibidoCajero(${p.id})" style="background:var(--green-btn); color:#fff; border:none; padding:5px 10px; border-radius:4px; cursor:pointer;">✔ Recibir</button></td>
+        </tr>
+      `).join('') || `<tr><td colspan="4">No hay pedidos pendientes para el ${fechaSel}.</td></tr>`;
+    }
+
+    function renderVistaCajero() {
+      document.getElementById('lblNombreSucursal').innerText = SUCURSAL_ACTIVA.replace('_', ' ').toUpperCase();
+      let sucData = datosSucursalLocal;
+
+      let efecTot = (sucData.ventas || []).filter(v => v.metodoPago === 'efectivo').reduce((a, b) => a + b.total, 0);
+      let tarjNetoTot = (sucData.ventas || []).filter(v => v.metodoPago === 'tarjeta').reduce((a, b) => a + b.montoNeto, 0);
+
+      document.getElementById('lblEfecGaveta').innerText = `$${efecTot.toFixed(2)}`;
+      document.getElementById('lblTarjNeto').innerText = `$${tarjNetoTot.toFixed(2)}`;
+
+      let hoyStr = new Date().toISOString().slice(0, 10);
+      let registros = [];
+
+      (sucData.ventas || []).forEach(v => {
+        if (v.fecha && v.fecha.startsWith(hoyStr)) {
+          registros.push({
+            hora: new Date(v.fecha).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            detalle: `Venta ${v.metodoPago.toUpperCase()} (${v.cajero})`,
+            monto: `+$${((v.metodoPago === 'tarjeta' ? v.montoNeto : v.total) || 0).toFixed(2)}`,
+            color: v.metodoPago === 'tarjeta' ? 'var(--accent-blue)' : 'green'
+          });
+        }
+      });
+
+      (sucData.compras || []).forEach(c => {
+        if (c.fecha && c.fecha.startsWith(hoyStr)) {
+          registros.push({
+            hora: new Date(c.fecha).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            detalle: `Compra: ${c.proveedor}`,
+            monto: `-$${(c.monto || 0).toFixed(2)}`,
+            color: 'red'
+          });
+        }
+      });
+
+      registros.sort((a, b) => b.hora.localeCompare(a.hora));
+      const tbody = document.getElementById('tablaRegistrosHoyBody');
+      tbody.innerHTML = registros.map(r => `
+        <tr><td>${r.hora}</td><td><b>${r.detalle}</b></td><td style="color: ${r.color}; font-weight: bold;">${r.monto}</td></tr>
+      `).join('') || '<tr><td colspan="3">Sin movimientos hoy.</td></tr>';
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      renderVistaCajero();
+    });
+  </script>
+</body>
+</html>
