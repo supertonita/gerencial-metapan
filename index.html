@@ -64,7 +64,7 @@
 
   <header>
     <h2>Super Toñita</h2>
-    <p>Caja y Operaciones — Sucursal: <b id="lblNombreSucursal" style="color: #ffc107;">CORINTO</b></p>
+    <p>Caja y Operaciones — Sucursal: <b id="lblNombreSucursal" style="color: #ffc107;">METAPÁN</b></p>
   </header>
 
   <div id="modVentas" class="section-module active">
@@ -187,17 +187,16 @@
   </nav>
 
   <script>
-    // ⚙️ CAMBIA ESTA VARIABLE SEGÚN LA SUCURSAL ('corinto', 'los_fuentes', 'metapan')
     const SUCURSAL_ACTIVA = 'metapan';
 
-    // ⚙️ CONFIGURA TU FIREBASE AQUÍ (Debe ser idéntico al del Panel Gerencial)
     const firebaseConfig = {
-      apiKey: "TU_API_KEY_AQUI",
-      authDomain: "tu-proyecto.firebaseapp.com",
-      projectId: "tu-proyecto",
-      storageBucket: "tu-proyecto.appspot.com",
-      messagingSenderId: "123456",
-      appId: "1:123456:web:abcdef"
+      apiKey: "AIzaSyBNk49StovMVyxQnSmL3qK-5qJyE0cERwc",
+      authDomain: "control-multisucursal.firebaseapp.com",
+      projectId: "control-multisucursal",
+      storageBucket: "control-multisucursal.firebasestorage.app",
+      messagingSenderId: "103293123018",
+      appId: "1:103293123018:web:c38e9fac24287cc4ed7733",
+      measurementId: "G-3PQZ8DBSW2"
     };
 
     firebase.initializeApp(firebaseConfig);
@@ -205,14 +204,12 @@
 
     let datosSucursalLocal = { saldoAsignado: 3500.00, compras: [], ventas: [], agenda: [], proveedores: ["Distribuidora La Toñita", "Lácteos San Carlos"] };
 
-    // Sincronizar en tiempo real los datos de la sucursal activa
     db.collection('sucursales').doc(SUCURSAL_ACTIVA).onSnapshot(doc => {
       if (doc.exists) {
         datosSucursalLocal = doc.data();
         renderVistaCajero();
         renderRecibirPorFecha();
       } else {
-        // Inicializar documento si no existe
         db.collection('sucursales').doc(SUCURSAL_ACTIVA).set(datosSucursalLocal);
       }
     });
