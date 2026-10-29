@@ -3,182 +3,534 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Super Toñita - App de Caja y Proveedores</title>
+  <title>Super Toñita - App de Caja y Operaciones</title>
   
+  <!-- PWA & Web App Manifest via Data URI para icono en Pantalla de Inicio -->
+  <link rel="manifest" href="data:application/manifest+json;utf8,%7B%22name%22%3A%22Super%20To%C3%B1ita%20Caja%22%2C%22short_name%22%3A%22To%C3%B1itaCaja%22%2C%22start_url%22%3A%22.%22%2C%22display%22%3A%22standalone%22%2C%22background_color%22%3A%22%230f172a%22%2C%22theme_color%22%3A%22%230f172a%22%2C%22icons%22%3A%5B%7B%22src%22%3A%22data%3Aimage%2Fsvg%2Bxml%3Butf8%2C%23svgView(viewBox(0%200%20512%20512))%253Csvg%2520xmlns%253D%2522http%253A%252F%252Fwww.w3.org%252F2000%252Fsvg%2522%2520width%253D%2522512%2522%2520height%253D%2522512%2522%253E%253Crect%2520width%253D%2522512%2522%2520height%253D%2522512%2522%2520rx%253D%2522110%2522%2520fill%253D%2522%25230f172a%22%2F%253E%253Cpath%2520d%253D%2522M160%2520190%2520h192%2520l-16%2520200%2520H176%2520Z%2522%2520fill%253D%2522none%2522%2520stroke%253D%2522%2523f59e0b%22%253E%253C%252Fsvg%2522%2C%22sizes%22%3A%22512x512%22%2C%22type%22%3A%22image%2Fsvg%2Bxml%22%7D%5D%7D">
+  
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#0f172a">
+
   <!-- Firebase SDKs -->
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
 
   <style>
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
     :root {
-      --accent-blue: #1d528d;
-      --green-btn: #28a745;
-      --red-btn: #d9534f;
-      --yellow-bar: #d99a27;
-      --bg-light: #f4f6f9;
+      --bg-gradient-start: #1e3a8a;
+      --bg-gradient-mid: #0f172a;
+      --bg-gradient-end: #020617;
+      --card-bg: rgba(30, 41, 59, 0.55);
+      --card-border: rgba(56, 189, 248, 0.25);
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --accent-blue: #38bdf8;
+      --yellow-bar: #f59e0b;
+      --green-corte: #10b981;
+      --red-btn: #ef4444;
+      --radius-card: 20px;
+      --radius-pill: 999px;
     }
 
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, sans-serif; font-size: 13px; }
-    body { background-color: var(--bg-light); color: #222; padding: 10px; padding-bottom: 75px; display: flex; flex-direction: column; min-height: 100vh; }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif; -webkit-tap-highlight-color: transparent; }
+    
+    body {
+      background: radial-gradient(circle at 50% 0%, var(--bg-gradient-start) 0%, var(--bg-gradient-mid) 50%, var(--bg-gradient-end) 100%);
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding-bottom: 90px;
+    }
 
-    header { background: #1e3a5f; color: #fff; padding: 12px; border-radius: 8px; text-align: center; margin-bottom: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-    header h2 { font-size: 16px; text-transform: uppercase; }
-    header p { font-size: 11px; opacity: 0.85; margin-top: 2px; }
+    .app-viewport {
+      width: 100%;
+      max-width: 480px;
+      padding: 16px 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
 
-    .section-module { display: none; flex-direction: column; flex: 1; }
-    .section-module.active { display: flex; }
+    /* HEADER SUPERIOR */
+    header.app-header {
+      background: rgba(15, 23, 42, 0.75);
+      backdrop-filter: blur(16px);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius-card);
+      padding: 14px 18px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    }
 
-    .card-box { background: #fff; border: 1px solid #d0d7e1; border-radius: 8px; padding: 15px; margin-bottom: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); position: relative; }
-    .card-box h3 { color: var(--accent-blue); font-size: 15px; margin-bottom: 12px; border-bottom: 1px solid #eee; padding-bottom: 6px; }
+    .brand-title h1 {
+      font-size: 18px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      color: #fff;
+    }
+    
+    .brand-title p {
+      font-size: 11px;
+      color: var(--text-muted);
+      font-weight: 600;
+    }
 
-    .field-group { margin-bottom: 12px; position: relative; }
-    .field-group label { display: block; font-weight: bold; margin-bottom: 4px; color: #333; }
-    .field-group input, .field-group select { width: 100%; padding: 10px; border: 1px solid #7f9db9; border-radius: 5px; font-size: 14px; outline: none; }
+    .sucursal-tag {
+      background: rgba(245, 158, 11, 0.15);
+      border: 1px solid rgba(245, 158, 11, 0.4);
+      color: var(--yellow-bar);
+      padding: 6px 12px;
+      border-radius: var(--radius-pill);
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
 
-    .autocomplete-list { position: absolute; top: 100%; left: 0; right: 0; background: #fff; border: 1px solid #7f9db9; border-top: none; max-height: 120px; overflow-y: auto; z-index: 50; box-shadow: 0 4px 8px rgba(0,0,0,0.1); border-radius: 0 0 5px 5px; }
-    .autocomplete-item { padding: 8px 10px; cursor: pointer; border-bottom: 1px solid #f0f0f0; font-size: 13px; }
-    .autocomplete-item:hover { background: #eef2f7; font-weight: bold; }
+    /* BLACK CARD DE RESUMEN */
+    .black-card {
+      background: linear-gradient(145deg, #090d16 0%, #111827 100%);
+      color: #FFFFFF;
+      border-radius: 24px;
+      padding: 20px;
+      box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      position: relative;
+      overflow: hidden;
+    }
 
-    .btn-submit { width: 100%; padding: 12px; border: none; border-radius: 6px; font-size: 15px; font-weight: bold; color: #fff; cursor: pointer; margin-top: 5px; }
-    .btn-submit.venta { background: var(--accent-blue); }
-    .btn-submit.compra { background: var(--red-btn); }
-    .btn-submit.pedido { background: var(--yellow-bar); color: #000; }
+    .black-card::before {
+      content: '';
+      position: absolute;
+      top: -30%;
+      right: -20%;
+      width: 180px;
+      height: 180px;
+      background: radial-gradient(circle, rgba(56, 189, 248, 0.15) 0%, rgba(0,0,0,0) 70%);
+      pointer-events: none;
+    }
 
-    .resumen-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px; }
-    .resumen-card { background: #fff; border: 1px solid #cbd3df; padding: 12px; border-radius: 6px; text-align: center; }
-    .resumen-card h4 { font-size: 10px; color: #666; text-transform: uppercase; margin-bottom: 2px; }
-    .resumen-card .val { font-size: 18px; font-weight: bold; }
+    .card-top-label {
+      font-size: 11px;
+      color: var(--text-muted);
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+    }
 
-    .table-container { overflow-x: auto; max-height: 230px; }
-    table { width: 100%; border-collapse: collapse; text-align: left; font-size: 12px; }
-    th { background: #e6ebf2; padding: 8px; border-bottom: 1px solid #cbd3df; position: sticky; top: 0; }
-    td { padding: 8px; border-bottom: 1px solid #eee; }
+    .card-balance-val {
+      font-size: 32px;
+      font-weight: 800;
+      letter-spacing: -1px;
+      color: #fff;
+    }
 
-    .floating-nav { position: fixed; bottom: 0; left: 0; right: 0; background: #1e3a5f; display: grid; grid-template-columns: repeat(4, 1fr); padding: 8px; gap: 6px; box-shadow: 0 -4px 10px rgba(0,0,0,0.15); z-index: 1000; border-top: 1px solid #2c4d75; }
-    .nav-btn-app { background: transparent; border: none; color: #cbd3df; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 6px 0; border-radius: 6px; cursor: pointer; font-size: 11px; font-weight: bold; }
-    .nav-btn-app span.icon { font-size: 18px; margin-bottom: 2px; }
-    .nav-btn-app.active { background: var(--yellow-bar); color: #000; }
+    /* MÓDULOS DE VISTA */
+    .section-module {
+      display: none;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .section-module.active {
+      display: flex;
+    }
+
+    /* CARD BOXES ESTILO GLASSMORPHISM */
+    .glass-card {
+      background: var(--card-bg);
+      backdrop-filter: blur(14px);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius-card);
+      padding: 18px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      position: relative;
+    }
+
+    .glass-card h3 {
+      font-size: 15px;
+      font-weight: 800;
+      color: var(--accent-blue);
+      letter-spacing: -0.3px;
+    }
+
+    .resumen-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .resumen-subcard {
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid var(--card-border);
+      padding: 12px;
+      border-radius: 14px;
+      text-align: center;
+    }
+
+    .resumen-subcard h4 {
+      font-size: 10px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .resumen-subcard .val {
+      font-size: 18px;
+      font-weight: 800;
+    }
+
+    /* FORMULARIOS Y CAMPOS DE ENTRADA */
+    .field-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      position: relative;
+    }
+
+    .field-group label {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--text-main);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .field-group input, .field-group select {
+      width: 100%;
+      padding: 12px 14px;
+      background: rgba(15, 23, 42, 0.8);
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      font-size: 14px;
+      font-weight: 600;
+      color: #fff;
+      outline: none;
+      transition: all 0.2s;
+    }
+
+    .field-group input:focus, .field-group select:focus {
+      border-color: var(--accent-blue);
+      box-shadow: 0 0 10px rgba(56, 189, 248, 0.25);
+    }
+
+    /* AUTOCOMPLETE DESPLEGABLE */
+    .autocomplete-list {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      background: #0f172a;
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      max-height: 140px;
+      overflow-y: auto;
+      z-index: 100;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+      margin-top: 4px;
+    }
+
+    .autocomplete-item {
+      padding: 10px 14px;
+      cursor: pointer;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+      font-size: 13px;
+      color: var(--text-main);
+    }
+
+    .autocomplete-item:hover {
+      background: rgba(56, 189, 248, 0.15);
+      color: var(--accent-blue);
+      font-weight: bold;
+    }
+
+    /* BOTONES */
+    .btn-submit {
+      width: 100%;
+      padding: 14px;
+      border: none;
+      border-radius: 12px;
+      font-size: 14px;
+      font-weight: 800;
+      color: #fff;
+      cursor: pointer;
+      margin-top: 6px;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .btn-submit:active {
+      transform: scale(0.98);
+    }
+
+    .btn-submit.venta {
+      background: var(--accent-blue);
+      box-shadow: 0 4px 15px rgba(56, 189, 248, 0.3);
+    }
+
+    .btn-submit.compra {
+      background: var(--red-btn);
+      box-shadow: 0 4px 15px rgba(239, 68, 68, 0.3);
+    }
+
+    .btn-submit.pedido {
+      background: var(--yellow-bar);
+      color: #000;
+      box-shadow: 0 4px 15px rgba(245, 158, 11, 0.3);
+    }
+
+    /* TABLAS */
+    .table-container {
+      overflow-x: auto;
+      max-height: 220px;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,0.05);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+      font-size: 12px;
+    }
+
+    th {
+      background: rgba(15, 23, 42, 0.9);
+      padding: 10px;
+      border-bottom: 1px solid var(--card-border);
+      position: sticky;
+      top: 0;
+      color: var(--text-muted);
+      font-size: 10px;
+      text-transform: uppercase;
+    }
+
+    td {
+      padding: 10px;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+      color: var(--text-main);
+    }
+
+    /* BARRA DE NAVEGACIÓN FLOTANTE */
+    .floating-nav {
+      position: fixed;
+      bottom: 14px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 92%;
+      max-width: 440px;
+      background: rgba(15, 23, 42, 0.92);
+      backdrop-filter: blur(20px);
+      border-radius: var(--radius-pill);
+      padding: 6px;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 6px;
+      border: 1px solid var(--card-border);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+      z-index: 1000;
+    }
+
+    .nav-btn-app {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 8px 0;
+      border-radius: 16px;
+      cursor: pointer;
+      font-size: 10px;
+      font-weight: 700;
+      transition: all 0.2s;
+    }
+
+    .nav-btn-app span.icon {
+      font-size: 18px;
+      margin-bottom: 2px;
+    }
+
+    .nav-btn-app.active {
+      background: var(--yellow-bar);
+      color: #000;
+      box-shadow: 0 0 12px rgba(245,158,11,0.4);
+    }
   </style>
 </head>
 <body>
 
-  <header>
-    <h2>Super Toñita</h2>
-    <p>Caja y Operaciones — Sucursal: <b id="lblNombreSucursal" style="color: #ffc107;">METAPÁN</b></p>
-  </header>
+  <div class="app-viewport">
 
-  <div id="modVentas" class="section-module active">
-    <div class="card-box">
-      <h3>💰 Registrar Venta de Turno</h3>
-      <form id="formCajeroVenta" onsubmit="guardarVentaCajero(event)">
-        <div class="field-group">
-          <label>Forma de Pago:</label>
-          <select id="vMetodo">
-            <option value="efectivo">💵 Efectivo (Gaveta)</option>
-            <option value="tarjeta">💳 Tarjeta (Aplica 3.5% Comisión)</option>
-          </select>
-        </div>
-        <div class="field-group">
-          <label>Monto de la Venta ($):</label>
-          <input type="number" id="vMonto" step="0.01" required placeholder="0.00" style="font-weight: bold; font-size: 18px; text-align: right;">
-        </div>
-        <div class="field-group">
-          <label>Cajero Responsable:</label>
-          <input type="text" id="vCajero" required placeholder="Nombre">
-        </div>
-        <button type="submit" class="btn-submit venta">✔ Guardar Venta</button>
-      </form>
-    </div>
-
-    <div class="resumen-grid">
-      <div class="resumen-card">
-        <h4>Efectivo en Gaveta</h4>
-        <div class="val" id="lblEfecGaveta" style="color: var(--green-btn);">$0.00</div>
+    <!-- HEADER SUPERIOR -->
+    <header class="app-header">
+      <div class="brand-title">
+        <h1>Super Toñita</h1>
+        <p>Caja y Operaciones</p>
       </div>
-      <div class="resumen-card">
-        <h4>Tarjeta (Neto Banco)</h4>
-        <div class="val" id="lblTarjNeto" style="color: var(--accent-blue);">$0.00</div>
+      <div class="sucursal-tag" id="lblNombreSucursal">METAPAN </div>
+    </header>
+
+    <!-- MÓDULO VENTAS -->
+    <div id="modVentas" class="section-module active">
+      <div class="black-card">
+        <div class="card-top-label">Suma Total de Ventas</div>
+        <div class="card-balance-val" id="lblTotalVentasSuma" style="color: var(--accent-blue);">$0.00</div>
+        <div style="font-size: 11px; color: var(--text-muted);">Ingresos calculados en el turno actual</div>
       </div>
-    </div>
-  </div>
 
-  <div id="modCompras" class="section-module">
-    <div class="card-box">
-      <h3>🛒 Registrar Compra a Proveedor</h3>
-      <form id="formCajeroCompra" onsubmit="guardarCompraCajero(event)">
-        <div class="field-group">
-          <label>Proveedor / Descripción:</label>
-          <input type="text" id="cProveedor" required autocomplete="off" placeholder="Escribe para buscar proveedor..." oninput="filtrarProveedoresCompra()">
-          <div id="listaAutoCompra" class="autocomplete-list" style="display: none;"></div>
-        </div>
-        <div class="field-group">
-          <label>Monto Pagado ($):</label>
-          <input type="number" id="cMonto" step="0.01" required placeholder="0.00" style="font-weight: bold; font-size: 18px; text-align: right; color: var(--red-btn);">
-        </div>
-        <div class="field-group">
-          <label>Nº de Factura (Opcional):</label>
-          <input type="text" id="cFactura" placeholder="FAC-1234">
-        </div>
-        <button type="submit" class="btn-submit compra">✔ Registrar Compra</button>
-      </form>
-    </div>
-  </div>
+      <div class="glass-card">
+        <h3>💰 Registrar Venta de Turno</h3>
+        <form id="formCajeroVenta" onsubmit="guardarVentaCajero(event)">
+          <div class="field-group">
+            <label>Forma de Pago:</label>
+            <select id="vMetodo">
+              <option value="efectivo">💵 Efectivo (Gaveta)</option>
+              <option value="tarjeta">💳 Tarjeta (Aplica 3.5% Comisión)</option>
+            </select>
+          </div>
+          <div class="field-group">
+            <label>Monto de la Venta ($):</label>
+            <input type="number" id="vMonto" step="0.01" required placeholder="0.00" style="font-weight: bold; font-size: 18px; text-align: right; color: var(--accent-blue);">
+          </div>
+          <div class="field-group">
+            <label>Cajero Responsable:</label>
+            <select id="vCajero" required></select>
+          </div>
+          <button type="submit" class="btn-submit venta">✔ Guardar Venta</button>
+        </form>
+      </div>
 
-  <div id="modPedidos" class="section-module">
-    <div class="card-box">
-      <h3>📅 Agendar Nuevo Pedido / Proveedor</h3>
-      <form id="formCajeroPedido" onsubmit="agendarPedidoCajero(event)">
-        <div class="field-group">
-          <label>Proveedor:</label>
-          <input type="text" id="pProveedor" required autocomplete="off" placeholder="Escribe para buscar proveedor..." oninput="filtrarProveedoresPedido()">
-          <div id="listaAutoPedido" class="autocomplete-list" style="display: none;"></div>
+      <div class="resumen-grid">
+        <div class="resumen-subcard">
+          <h4>Efectivo Gaveta</h4>
+          <div class="val" id="lblEfecGaveta" style="color: var(--green-corte);">$0.00</div>
         </div>
-        <div class="field-group">
-          <label>Monto Estimado ($):</label>
-          <input type="number" id="pMonto" step="0.01" required placeholder="0.00" style="font-weight: bold; font-size: 18px; text-align: right;">
+        <div class="resumen-subcard">
+          <h4>Tarjeta Neto</h4>
+          <div class="val" id="lblTarjNeto" style="color: var(--accent-blue);">$0.00</div>
         </div>
-        <div class="field-group">
-          <label>Día de Entrega / Visita:</label>
-          <input type="date" id="pFecha" required style="font-size: 15px; font-weight: bold;">
-        </div>
-        <div class="field-group">
-          <label>Observaciones / Productos:</label>
-          <input type="text" id="pNotas" placeholder="Ej: Pedido de lácteos">
-        </div>
-        <button type="submit" class="btn-submit pedido">📌 Agendar Pedido</button>
-      </form>
-    </div>
-  </div>
+      </div>
 
-  <div id="modRecibir" class="section-module">
-    <div class="card-box">
-      <h3>✅ Recibir Pedidos por Fecha</h3>
-      <div class="field-group">
-        <label>Seleccionar Día a Consultar:</label>
-        <input type="date" id="inputFechaRecibir" onchange="renderRecibirPorFecha()" style="font-size: 15px; font-weight: bold;">
+      <div class="glass-card">
+        <h3>💵 Ventas Registradas Hoy</h3>
+        <div class="table-container">
+          <table>
+            <thead><tr><th>Hora</th><th>Método / Cajero</th><th>Monto</th></tr></thead>
+            <tbody id="tablaVentasHoyBody"></tbody>
+          </table>
+        </div>
       </div>
     </div>
-    <div class="card-box" style="flex: 1; display: flex; flex-direction: column;">
-      <h3>📦 Pedidos Agendados</h3>
-      <div class="table-container">
-        <table>
-          <thead><tr><th>Proveedor</th><th>Monto Est.</th><th>Observaciones</th><th>Acción</th></tr></thead>
-          <tbody id="tablaRecibirHoyBody"></tbody>
-        </table>
+
+    <!-- MÓDULO COMPRAS -->
+    <div id="modCompras" class="section-module">
+      <div class="resumen-grid">
+        <div class="resumen-subcard">
+          <h4>Saldo Inicial</h4>
+          <div class="val" id="lblSaldoInicial" style="color: #fff;">$0.00</div>
+        </div>
+        <div class="resumen-subcard">
+          <h4>Saldo Restante</h4>
+          <div class="val" id="lblSaldoRestante" style="color: var(--green-corte);">$0.00</div>
+        </div>
+      </div>
+
+      <div class="glass-card">
+        <h3>🛒 Registrar Compra a Proveedor</h3>
+        <form id="formCajeroCompra" onsubmit="guardarCompraCajero(event)">
+          <div class="field-group">
+            <label>Proveedor / Descripción:</label>
+            <input type="text" id="cProveedor" required autocomplete="off" placeholder="Escribe para buscar proveedor..." oninput="filtrarProveedoresCompra()">
+            <div id="listaAutoCompra" class="autocomplete-list" style="display: none;"></div>
+          </div>
+          <div class="field-group">
+            <label>Monto Pagado ($):</label>
+            <input type="number" id="cMonto" step="0.01" required placeholder="0.00" style="font-weight: bold; font-size: 18px; text-align: right; color: var(--red-btn);">
+          </div>
+          <div class="field-group">
+            <label>Nº de Factura (Opcional):</label>
+            <input type="text" id="cFactura" placeholder="FAC-1234">
+          </div>
+          <button type="submit" class="btn-submit compra">✔ Registrar Compra</button>
+        </form>
+      </div>
+
+      <div class="glass-card">
+        <h3>🛒 Compras Registradas Hoy</h3>
+        <div class="table-container">
+          <table>
+            <thead><tr><th>Hora</th><th>Proveedor / Factura</th><th>Monto</th></tr></thead>
+            <tbody id="tablaComprasHoyBody"></tbody>
+          </table>
+        </div>
       </div>
     </div>
-  </div>
 
-  <div class="card-box" style="flex: 1; display: flex; flex-direction: column;">
-    <h3>📜 Movimientos de Hoy</h3>
-    <div class="table-container">
-      <table>
-        <thead><tr><th>Hora</th><th>Tipo / Detalle</th><th>Monto</th></tr></thead>
-        <tbody id="tablaRegistrosHoyBody"></tbody>
-      </table>
+    <!-- MÓDULO PEDIDOS -->
+    <div id="modPedidos" class="section-module">
+      <div class="glass-card">
+        <h3>📅 Agendar Nuevo Pedido / Proveedor</h3>
+        <form id="formCajeroPedido" onsubmit="agendarPedidoCajero(event)">
+          <div class="field-group">
+            <label>Proveedor:</label>
+            <input type="text" id="pProveedor" required autocomplete="off" placeholder="Escribe para buscar proveedor..." oninput="filtrarProveedoresPedido()">
+            <div id="listaAutoPedido" class="autocomplete-list" style="display: none;"></div>
+          </div>
+          <div class="field-group">
+            <label>Monto Estimado ($):</label>
+            <input type="number" id="pMonto" step="0.01" required placeholder="0.00" style="font-weight: bold; font-size: 18px; text-align: right; color: var(--yellow-bar);">
+          </div>
+          <div class="field-group">
+            <label>Día de Entrega / Visita:</label>
+            <input type="date" id="pFecha" required style="font-size: 14px; font-weight: bold;">
+          </div>
+          <div class="field-group">
+            <label>Observaciones / Productos:</label>
+            <input type="text" id="pNotas" placeholder="Ej: Pedido de lácteos">
+          </div>
+          <button type="submit" class="btn-submit pedido">📌 Agendar Pedido</button>
+        </form>
+      </div>
     </div>
-  </div>
 
+    <!-- MÓDULO RECIBIR -->
+    <div id="modRecibir" class="section-module">
+      <div class="glass-card">
+        <h3>✅ Recibir Pedidos por Fecha</h3>
+        <div class="field-group">
+          <label>Seleccionar Día a Consultar:</label>
+          <input type="date" id="inputFechaRecibir" onchange="renderRecibirPorFecha()" style="font-size: 14px; font-weight: bold;">
+        </div>
+      </div>
+      <div class="glass-card">
+        <h3>📦 Pedidos Agendados</h3>
+        <div class="table-container">
+          <table>
+            <thead><tr><th>Proveedor</th><th>Monto Est.</th><th>Observaciones</th><th>Acción</th></tr></thead>
+            <tbody id="tablaRecibirHoyBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </div> <!-- Cierre App Viewport -->
+
+  <!-- NAVEGACIÓN FLOTANTE -->
   <nav class="floating-nav">
     <button class="nav-btn-app active" id="navVentas" onclick="switchModulo('ventas')"><span class="icon">💰</span> Ventas</button>
     <button class="nav-btn-app" id="navCompras" onclick="switchModulo('compras')"><span class="icon">🛒</span> Compras</button>
@@ -187,7 +539,7 @@
   </nav>
 
   <script>
-    const SUCURSAL_ACTIVA = 'metapan';
+    const SUCURSAL_ACTIVA = 'metapan'; 
 
     const firebaseConfig = {
       apiKey: "AIzaSyBNk49StovMVyxQnSmL3qK-5qJyE0cERwc",
@@ -202,7 +554,7 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
 
-    let datosSucursalLocal = { saldoAsignado: 3500.00, compras: [], ventas: [], agenda: [], proveedores: ["Distribuidora La Toñita", "Lácteos San Carlos"] };
+    let datosSucursalLocal = { saldoAsignado: 3500.00, compras: [], ventas: [], agenda: [], proveedores: ["Distribuidora La Toñita", "Lácteos San Carlos"], cajeros: ["Francisco", "María"] };
 
     db.collection('sucursales').doc(SUCURSAL_ACTIVA).onSnapshot(doc => {
       if (doc.exists) {
@@ -238,7 +590,6 @@
         let inputFecha = document.getElementById('inputFechaRecibir');
         let hoy = new Date().toISOString().slice(0, 10);
         inputFecha.value = hoy;
-        inputFecha.min = hoy;
         renderRecibirPorFecha();
       }
     }
@@ -269,7 +620,7 @@
       e.preventDefault();
       const metodo = document.getElementById('vMetodo').value;
       const monto = parseFloat(document.getElementById('vMonto').value) || 0;
-      const cajero = document.getElementById('vCajero').value.trim();
+      const cajero = document.getElementById('vCajero').value;
 
       const comision = metodo === 'tarjeta' ? (monto * 0.035) : 0;
       const neto = monto - comision;
@@ -281,7 +632,7 @@
       guardarEnNube();
 
       document.getElementById('vMonto').value = '';
-      alert("¡Venta registrada y enviada a gerencia!");
+      alert("¡Venta registrada!");
     }
 
     function guardarCompraCajero(e) {
@@ -293,10 +644,17 @@
       const nuevaCompra = { id: Date.now(), fecha: new Date().toISOString(), proveedor, monto, factura };
       if(!datosSucursalLocal.compras) datosSucursalLocal.compras = [];
       datosSucursalLocal.compras.unshift(nuevaCompra);
+
+      // Sincronizar proveedor automáticamente si es nuevo
+      if(!datosSucursalLocal.proveedores) datosSucursalLocal.proveedores = [];
+      if(proveedor && !datosSucursalLocal.proveedores.includes(proveedor)) {
+        datosSucursalLocal.proveedores.push(proveedor);
+      }
+
       guardarEnNube();
 
       document.getElementById('formCajeroCompra').reset();
-      alert("¡Compra registrada y enviada a gerencia!");
+      alert("¡Compra registrada y proveedor guardado!");
     }
 
     function agendarPedidoCajero(e) {
@@ -309,6 +667,12 @@
       const nuevoPedido = { id: Date.now(), proveedor, monto, fechaProg: fecha, notas, estado: 'pendiente' };
       if(!datosSucursalLocal.agenda) datosSucursalLocal.agenda = [];
       datosSucursalLocal.agenda.push(nuevoPedido);
+
+      if(!datosSucursalLocal.proveedores) datosSucursalLocal.proveedores = [];
+      if(proveedor && !datosSucursalLocal.proveedores.includes(proveedor)) {
+        datosSucursalLocal.proveedores.push(proveedor);
+      }
+
       guardarEnNube();
 
       document.getElementById('formCajeroPedido').reset();
@@ -342,7 +706,7 @@
           <td><b>${p.proveedor}</b></td>
           <td style="color:var(--accent-blue); font-weight:bold;">$${p.monto.toFixed(2)}</td>
           <td>${p.notas || 'N/A'}</td>
-          <td><button onclick="marcarPedidoRecibidoCajero(${p.id})" style="background:var(--green-btn); color:#fff; border:none; padding:5px 10px; border-radius:4px; cursor:pointer;">✔ Recibir</button></td>
+          <td><button onclick="marcarPedidoRecibidoCajero(${p.id})" style="background:var(--green-corte); color:#fff; border:none; padding:6px 10px; border-radius:6px; cursor:pointer; font-weight:bold;">✔ Recibir</button></td>
         </tr>
       `).join('') || `<tr><td colspan="4">No hay pedidos pendientes para el ${fechaSel}.</td></tr>`;
     }
@@ -351,42 +715,59 @@
       document.getElementById('lblNombreSucursal').innerText = SUCURSAL_ACTIVA.replace('_', ' ').toUpperCase();
       let sucData = datosSucursalLocal;
 
-      let efecTot = (sucData.ventas || []).filter(v => v.metodoPago === 'efectivo').reduce((a, b) => a + b.total, 0);
-      let tarjNetoTot = (sucData.ventas || []).filter(v => v.metodoPago === 'tarjeta').reduce((a, b) => a + b.montoNeto, 0);
+      // 1. CÁLCULO DE SALDOS PARA COMPRAS (Sincronizado con Firebase)
+      let saldoInicial = sucData.saldoAsignado !== undefined ? Number(sucData.saldoAsignado) : 3500.00;
+      let totalComprasGeneral = (sucData.compras || []).reduce((acc, c) => acc + (c.monto || 0), 0);
+      let saldoRestante = saldoInicial - totalComprasGeneral;
+
+      document.getElementById('lblSaldoInicial').innerText = `$${saldoInicial.toFixed(2)}`;
+      document.getElementById('lblSaldoRestante').innerText = `$${saldoRestante.toFixed(2)}`;
+      document.getElementById('lblSaldoRestante').style.color = saldoRestante < 0 ? 'var(--red-btn)' : 'var(--green-corte)';
+
+      // 2. RENDERIZAR SELECT DE CAJEROS SEGÚN FIREBASE
+      let cajerosList = sucData.cajeros || ["Cajero General"];
+      let selectCajero = document.getElementById('vCajero');
+      let cajeroActualSeleccionado = selectCajero.value;
+      selectCajero.innerHTML = cajerosList.map(c => `<option value="${c}">${c}</option>`).join('');
+      if(cajerosList.includes(cajeroActualSeleccionado)) {
+        selectCajero.value = cajeroActualSeleccionado;
+      }
+
+      // 3. CÁLCULO DE VENTAS
+      let ventasList = sucData.ventas || [];
+      let efecTot = ventasList.filter(v => v.metodoPago === 'efectivo').reduce((a, b) => a + b.total, 0);
+      let tarjNetoTot = ventasList.filter(v => v.metodoPago === 'tarjeta').reduce((a, b) => a + b.montoNeto, 0);
+      let sumaTotalVentas = ventasList.reduce((a, b) => a + (b.metodoPago === 'tarjeta' ? b.montoNeto : b.total), 0);
 
       document.getElementById('lblEfecGaveta').innerText = `$${efecTot.toFixed(2)}`;
       document.getElementById('lblTarjNeto').innerText = `$${tarjNetoTot.toFixed(2)}`;
+      document.getElementById('lblTotalVentasSuma').innerText = `$${sumaTotalVentas.toFixed(2)}`;
 
       let hoyStr = new Date().toISOString().slice(0, 10);
-      let registros = [];
 
-      (sucData.ventas || []).forEach(v => {
-        if (v.fecha && v.fecha.startsWith(hoyStr)) {
-          registros.push({
-            hora: new Date(v.fecha).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-            detalle: `Venta ${v.metodoPago.toUpperCase()} (${v.cajero})`,
-            monto: `+$${((v.metodoPago === 'tarjeta' ? v.montoNeto : v.total) || 0).toFixed(2)}`,
-            color: v.metodoPago === 'tarjeta' ? 'var(--accent-blue)' : 'green'
-          });
-        }
-      });
+      // Tabla Ventas de Hoy
+      let ventasHoy = ventasList.filter(v => v.fecha && v.fecha.startsWith(hoyStr));
+      ventasHoy.sort((a, b) => b.fecha.localeCompare(a.fecha));
+      
+      document.getElementById('tablaVentasHoyBody').innerHTML = ventasHoy.map(v => `
+        <tr>
+          <td>${new Date(v.fecha).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</td>
+          <td><b>${v.metodoPago.toUpperCase()}</b> (${v.cajero || 'General'})</td>
+          <td style="color: ${v.metodoPago === 'tarjeta' ? 'var(--accent-blue)' : 'var(--green-corte)'}; font-weight: bold;">+$${(v.metodoPago === 'tarjeta' ? v.montoNeto : v.total).toFixed(2)}</td>
+        </tr>
+      `).join('') || '<tr><td colspan="3">Sin ventas registradas hoy.</td></tr>';
 
-      (sucData.compras || []).forEach(c => {
-        if (c.fecha && c.fecha.startsWith(hoyStr)) {
-          registros.push({
-            hora: new Date(c.fecha).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-            detalle: `Compra: ${c.proveedor}`,
-            monto: `-$${(c.monto || 0).toFixed(2)}`,
-            color: 'red'
-          });
-        }
-      });
+      // Tabla Compras de Hoy
+      let comprasHoy = (sucData.compras || []).filter(c => c.fecha && c.fecha.startsWith(hoyStr));
+      comprasHoy.sort((a, b) => b.fecha.localeCompare(a.fecha));
 
-      registros.sort((a, b) => b.hora.localeCompare(a.hora));
-      const tbody = document.getElementById('tablaRegistrosHoyBody');
-      tbody.innerHTML = registros.map(r => `
-        <tr><td>${r.hora}</td><td><b>${r.detalle}</b></td><td style="color: ${r.color}; font-weight: bold;">${r.monto}</td></tr>
-      `).join('') || '<tr><td colspan="3">Sin movimientos hoy.</td></tr>';
+      document.getElementById('tablaComprasHoyBody').innerHTML = comprasHoy.map(c => `
+        <tr>
+          <td>${new Date(c.fecha).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</td>
+          <td><b>${c.proveedor}</b> ${c.factura ? '<small>('+c.factura+')</small>' : ''}</td>
+          <td style="color: var(--red-btn); font-weight: bold;">-$${(c.monto || 0).toFixed(2)}</td>
+        </tr>
+      `).join('') || '<tr><td colspan="3">Sin compras registradas hoy.</td></tr>';
     }
 
     window.addEventListener('DOMContentLoaded', () => {
