@@ -309,6 +309,73 @@
       background: rgba(56, 189, 248, 0.35);
     }
 
+    /* BOTÓN CÁMARA / FOTO */
+    .btn-camera {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      background: rgba(16, 185, 129, 0.15);
+      border: 1px dashed var(--green-corte);
+      color: var(--green-corte);
+      padding: 12px;
+      border-radius: 12px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      text-align: center;
+      transition: background 0.2s;
+    }
+    .btn-camera:active { background: rgba(16, 185, 129, 0.3); }
+
+    /* THUMBNAIL FOTO FACTURA PREVIEW */
+    .photo-preview-box {
+      display: none;
+      align-items: center;
+      justify-content: space-between;
+      background: rgba(15, 23, 42, 0.9);
+      padding: 8px 12px;
+      border-radius: 10px;
+      border: 1px solid var(--green-corte);
+    }
+    .photo-preview-box img {
+      width: 40px;
+      height: 40px;
+      object-fit: cover;
+      border-radius: 6px;
+    }
+
+    /* MODAL VISOR DE FOTO */
+    .modal-overlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.85);
+      backdrop-filter: blur(6px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 3000;
+      padding: 20px;
+    }
+    .modal-content {
+      background: #1e293b;
+      border-radius: 20px;
+      padding: 16px;
+      max-width: 90%;
+      max-height: 90vh;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      align-items: center;
+      border: 1px solid var(--card-border);
+    }
+    .modal-content img {
+      max-width: 100%;
+      max-height: 70vh;
+      border-radius: 12px;
+      object-fit: contain;
+    }
+
     /* TABLAS */
     .table-container {
       overflow-x: auto;
@@ -399,17 +466,16 @@
         <h1>Super Toñita</h1>
         <p>Caja y Operaciones</p>
       </div>
-      <div class="sucursal-tag" id="lblNombreSucursal">metapan</div>
+      <div class="sucursal-tag" id="lblNombreSucursal">METAPAN </div>
     </header>
 
     <!-- MÓDULO VENTAS -->
     <div id="modVentas" class="section-module active">
       <div class="black-card">
-        <div class="card-top-label">Suma Total de Ventas</div>
+        <div class="card-top-label">Suma Total de Ventas (Ciclo Actual)</div>
         <div class="card-balance-val" id="lblTotalVentasSuma" style="color: var(--accent-blue);">$0.00</div>
         <div style="font-size: 11px; color: var(--text-muted);">Ingresos calculados en el turno actual</div>
       </div>
-
       <div class="glass-card">
         <h3>💰 Registrar Venta de Turno</h3>
         <form id="formCajeroVenta" onsubmit="guardarVentaCajero(event)">
@@ -443,12 +509,20 @@
         </div>
       </div>
 
+      <!-- CALENDARIO SEMANAL / AUDITORÍA DE VENTAS -->
       <div class="glass-card">
-        <h3>💵 Ventas Registradas (Ciclo Actual)</h3>
-        <div class="table-container">
+        <h3>📅 Auditoría Diaria / Calendario de Ventas</h3>
+        <div class="field-group">
+          <label>Seleccionar Fecha a Revisar:</label>
+          <input type="date" id="filtroFechaVentas" onchange="renderVentasPorFecha()" style="font-weight:bold;">
+        </div>
+        <div style="font-size: 12px; font-weight: bold; color: var(--accent-blue); margin-top: 4px;">
+          Total del Día Seleccionado: <span id="lblTotalVentasFechaSel">$0.00</span>
+        </div>
+        <div class="table-container" style="margin-top: 6px;">
           <table>
             <thead><tr><th>Hora</th><th>Método / Cajero</th><th>Monto</th></tr></thead>
-            <tbody id="tablaVentasHoyBody"></tbody>
+            <tbody id="tablaVentasFechaBody"></tbody>
           </table>
         </div>
       </div>
@@ -482,20 +556,41 @@
             <label>Monto Pagado ($):</label>
             <input type="number" id="cMonto" step="0.01" required placeholder="0.00" style="font-weight: bold; font-size: 18px; text-align: right; color: var(--red-btn);">
           </div>
+          
+          <!-- OPCIÓN DE TOMAR FOTO DE FACTURA EN VEZ DE TEXTO -->
           <div class="field-group">
-            <label>Nº de Factura (Opcional):</label>
-            <input type="text" id="cFactura" placeholder="FAC-1234">
+            <label>Respaldo Factura (Foto):</label>
+            <input type="file" id="inputFotoFactura" accept="image/*" capture="environment" style="display:none;" onchange="procesarFotoFactura(event)">
+            <button type="button" class="btn-camera" onclick="document.getElementById('inputFotoFactura').click()">
+              📷 <span>Tomar Foto de Factura o Recibo</span>
+            </button>
+            <div id="previewBoxFoto" class="photo-preview-box">
+              <div style="display:flex; align-items:center; gap:8px;">
+                <img id="imgThumbnail" src="" alt="Factura">
+                <span style="font-size: 11px; font-weight: bold; color: var(--green-corte);">✔ Foto adjuntada con éxito</span>
+              </div>
+              <button type="button" onclick="removerFotoFactura()" style="background:none; border:none; color:var(--red-btn); font-weight:bold; cursor:pointer; font-size:16px;">✕</button>
+            </div>
           </div>
+
           <button type="submit" class="btn-submit compra">✔ Registrar Compra</button>
         </form>
       </div>
 
+      <!-- CALENDARIO SEMANAL / AUDITORÍA DE COMPRAS -->
       <div class="glass-card">
-        <h3>🛒 Compras Registradas (Ciclo Actual)</h3>
-        <div class="table-container">
+        <h3>📅 Auditoría Diaria / Calendario de Compras</h3>
+        <div class="field-group">
+          <label>Seleccionar Fecha a Revisar:</label>
+          <input type="date" id="filtroFechaCompras" onchange="renderComprasPorFecha()" style="font-weight:bold;">
+        </div>
+        <div style="font-size: 12px; font-weight: bold; color: var(--red-btn); margin-top: 4px;">
+          Total Compras del Día: <span id="lblTotalComprasFechaSel">$0.00</span>
+        </div>
+        <div class="table-container" style="margin-top: 6px;">
           <table>
-            <thead><tr><th>Hora</th><th>Proveedor / Factura</th><th>Monto</th></tr></thead>
-            <tbody id="tablaComprasHoyBody"></tbody>
+            <thead><tr><th>Hora</th><th>Proveedor</th><th>Monto</th><th>Factura</th></tr></thead>
+            <tbody id="tablaComprasFechaBody"></tbody>
           </table>
         </div>
       </div>
@@ -550,6 +645,17 @@
 
   </div> <!-- Cierre App Viewport -->
 
+  <!-- MODAL PARA VER FOTO DE FACTURA EN GRANDE -->
+  <div id="modalVisorFoto" class="modal-overlay" onclick="cerrarVisorFoto()">
+    <div class="modal-content" onclick="event.stopPropagation()">
+      <div style="display:flex; justify-content:space-between; width:100%; align-items:center;">
+        <h3 style="color:var(--accent-blue); font-size:14px;">📄 Respaldo de Factura</h3>
+        <button onclick="cerrarVisorFoto()" style="background:none; border:none; color:#fff; font-size:20px; cursor:pointer;">✕</button>
+      </div>
+      <img id="imgVisorGrande" src="" alt="Factura Ampliada">
+    </div>
+  </div>
+
   <!-- NAVEGACIÓN FLOTANTE -->
   <nav class="floating-nav">
     <button class="nav-btn-app active" id="navVentas" onclick="switchModulo('ventas')"><span class="icon">💰</span> Ventas</button>
@@ -560,6 +666,7 @@
 
   <script>
     const SUCURSAL_ACTIVA = 'metapan'; 
+    let fotoFacturaBase64 = null;
 
     const firebaseConfig = {
       apiKey: "AIzaSyBNk49StovMVyxQnSmL3qK-5qJyE0cERwc",
@@ -594,22 +701,32 @@
       document.querySelectorAll('.section-module').forEach(s => s.classList.remove('active'));
       document.querySelectorAll('.nav-btn-app').forEach(b => b.classList.remove('active'));
 
+      let hoy = new Date().toISOString().slice(0, 10);
+
       if(mod === 'ventas') {
         document.getElementById('modVentas').classList.add('active');
         document.getElementById('navVentas').classList.add('active');
+        if(!document.getElementById('filtroFechaVentas').value) {
+          document.getElementById('filtroFechaVentas').value = hoy;
+        }
+        renderVentasPorFecha();
       } else if(mod === 'compras') {
         document.getElementById('modCompras').classList.add('active');
         document.getElementById('navCompras').classList.add('active');
+        if(!document.getElementById('filtroFechaCompras').value) {
+          document.getElementById('filtroFechaCompras').value = hoy;
+        }
+        renderComprasPorFecha();
       } else if(mod === 'pedidos') {
         document.getElementById('modPedidos').classList.add('active');
         document.getElementById('navPedidos').classList.add('active');
-        document.getElementById('pFecha').value = new Date().toISOString().slice(0, 10);
+        document.getElementById('pFecha').value = hoy;
       } else if(mod === 'recibir') {
         document.getElementById('modRecibir').classList.add('active');
         document.getElementById('navRecibir').classList.add('active');
-        let inputFecha = document.getElementById('inputFechaRecibir');
-        let hoy = new Date().toISOString().slice(0, 10);
-        inputFecha.value = hoy;
+        if(!document.getElementById('inputFechaRecibir').value) {
+          document.getElementById('inputFechaRecibir').value = hoy;
+        }
         renderRecibirPorFecha();
       }
     }
@@ -620,10 +737,59 @@
       if(val !== null && !isNaN(val) && val.trim() !== '') {
         let nuevoSaldo = parseFloat(val);
         datosSucursalLocal.saldoAsignado = nuevoSaldo;
-        datosSucursalLocal.corteComprasTs = Date.now(); // Reinicia el ciclo ignorando compras anteriores
+        datosSucursalLocal.corteComprasTs = Date.now(); 
         guardarEnNube();
         alert(`¡Saldo actualizado a $${nuevoSaldo.toFixed(2)} y ciclo de compras reiniciado limpiamente!`);
       }
+    }
+
+    // --- PROCESAMIENTO DE FOTO DE FACTURA ---
+    function procesarFotoFactura(e) {
+      const file = e.target.files[0];
+      if(!file) return;
+      const reader = new FileReader();
+      reader.onload = function(evt) {
+        const img = new Image();
+        img.onload = function() {
+          const canvas = document.createElement('canvas');
+          const MAX_WIDTH = 800;
+          const MAX_HEIGHT = 800;
+          let width = img.width;
+          let height = img.height;
+
+          if (width > height) {
+            if (width > MAX_WIDTH) { height *= MAX_WIDTH / width; width = MAX_WIDTH; }
+          } else {
+            if (height > MAX_HEIGHT) { width *= MAX_HEIGHT / height; height = MAX_HEIGHT; }
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+
+          fotoFacturaBase64 = canvas.toDataURL('image/jpeg', 0.75);
+          document.getElementById('imgThumbnail').src = fotoFacturaBase64;
+          document.getElementById('previewBoxFoto').style.display = 'flex';
+        };
+        img.src = evt.target.result;
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function removerFotoFactura() {
+      fotoFacturaBase64 = null;
+      document.getElementById('inputFotoFactura').value = '';
+      document.getElementById('previewBoxFoto').style.display = 'none';
+    }
+
+    function abrirVisorFoto(url) {
+      document.getElementById('imgVisorGrande').src = url;
+      document.getElementById('modalVisorFoto').style.display = 'flex';
+    }
+
+    function cerrarVisorFoto() {
+      document.getElementById('modalVisorFoto').style.display = 'none';
     }
 
     function filtrarProveedoresCompra() {
@@ -665,15 +831,23 @@
 
       document.getElementById('vMonto').value = '';
       alert("¡Venta registrada!");
+      renderVentasPorFecha();
     }
 
     function guardarCompraCajero(e) {
       e.preventDefault();
       const proveedor = document.getElementById('cProveedor').value.trim();
       const monto = parseFloat(document.getElementById('cMonto').value) || 0;
-      const factura = document.getElementById('cFactura').value.trim();
 
-      const nuevaCompra = { id: Date.now(), fecha: new Date().toISOString(), proveedor, monto, factura };
+      const nuevaCompra = { 
+        id: Date.now(), 
+        fecha: new Date().toISOString(), 
+        proveedor, 
+        monto, 
+        factura: fotoFacturaBase64 ? 'FOTO-FACTURA' : 'SIN-FACTURA',
+        fotoFactura: fotoFacturaBase64 || null 
+      };
+
       if(!datosSucursalLocal.compras) datosSucursalLocal.compras = [];
       datosSucursalLocal.compras.unshift(nuevaCompra);
 
@@ -685,7 +859,9 @@
       guardarEnNube();
 
       document.getElementById('formCajeroCompra').reset();
-      alert("¡Compra registrada y proveedor guardado!");
+      removerFotoFactura();
+      alert("¡Compra y respaldo fotográfico registrados!");
+      renderComprasPorFecha();
     }
 
     function agendarPedidoCajero(e) {
@@ -708,6 +884,9 @@
 
       document.getElementById('formCajeroPedido').reset();
       alert("¡Pedido agendado!");
+      
+      // Ajustar la fecha a consultar en la pestaña recibir para ver el pedido creado inmediatamente
+      document.getElementById('inputFechaRecibir').value = fecha;
       switchModulo('recibir');
     }
 
@@ -718,35 +897,90 @@
 
       if(confirm(`¿Confirmar recepción del pedido de "${pedido.proveedor}" por $${pedido.monto.toFixed(2)}?`)) {
         pedido.estado = 'recibido';
-        const nuevaCompra = { id: Date.now(), fecha: new Date().toISOString(), proveedor: pedido.proveedor, monto: pedido.monto, factura: 'PEDIDO-AGENDADO' };
+        const nuevaCompra = { 
+          id: Date.now(), 
+          fecha: new Date().toISOString(), 
+          proveedor: pedido.proveedor, 
+          monto: pedido.monto, 
+          factura: 'PEDIDO-AGENDADO', 
+          fotoFactura: null 
+        };
         if(!datosSucursalLocal.compras) datosSucursalLocal.compras = [];
         datosSucursalLocal.compras.unshift(nuevaCompra);
         guardarEnNube();
         alert("¡Pedido recibido y registrado como compra!");
+        renderRecibirPorFecha();
+        renderComprasPorFecha();
       }
     }
 
     function renderRecibirPorFecha() {
       let fechaSel = document.getElementById('inputFechaRecibir').value;
       let agenda = datosSucursalLocal.agenda || [];
+      
+      // Filtrar asegurando comparación exacta de string de fecha 'YYYY-MM-DD'
       let filtrados = agenda.filter(p => p.fechaProg === fechaSel && p.estado === 'pendiente');
       
       const tbody = document.getElementById('tablaRecibirHoyBody');
       tbody.innerHTML = filtrados.map(p => `
         <tr>
           <td><b>${p.proveedor}</b></td>
-          <td style="color:var(--accent-blue); font-weight:bold;">$${p.monto.toFixed(2)}</td>
+          <td style="color:var(--accent-blue); font-weight:bold;">$${(p.monto || 0).toFixed(2)}</td>
           <td>${p.notas || 'N/A'}</td>
           <td><button onclick="marcarPedidoRecibidoCajero(${p.id})" style="background:var(--green-corte); color:#fff; border:none; padding:6px 10px; border-radius:6px; cursor:pointer; font-weight:bold;">✔ Recibir</button></td>
         </tr>
       `).join('') || `<tr><td colspan="4">No hay pedidos pendientes para el ${fechaSel}.</td></tr>`;
     }
 
+    // --- AUDITORÍA CALENDARIO VENTAS ---
+    function renderVentasPorFecha() {
+      let fechaSel = document.getElementById('filtroFechaVentas').value;
+      let ventas = datosSucursalLocal.ventas || [];
+      let filtradas = ventas.filter(v => {
+        let fStr = v.fecha ? v.fecha.slice(0, 10) : new Date(v.id).toISOString().slice(0, 10);
+        return fStr === fechaSel;
+      });
+
+      let sumaFecha = filtradas.reduce((acc, v) => acc + (v.metodoPago === 'tarjeta' ? v.montoNeto : v.total), 0);
+      document.getElementById('lblTotalVentasFechaSel').innerText = `$${sumaFecha.toFixed(2)}`;
+
+      document.getElementById('tablaVentasFechaBody').innerHTML = filtradas.map(v => `
+        <tr>
+          <td>${new Date(v.id).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</td>
+          <td><b>${v.metodoPago.toUpperCase()}</b> (${v.cajero || 'General'})</td>
+          <td style="color: ${v.metodoPago === 'tarjeta' ? 'var(--accent-blue)' : 'var(--green-corte)'}; font-weight: bold;">+$${(v.metodoPago === 'tarjeta' ? v.montoNeto : v.total).toFixed(2)}</td>
+        </tr>
+      `).join('') || `<tr><td colspan="3">Sin ventas registradas el ${fechaSel}.</td></tr>`;
+    }
+
+    // --- AUDITORÍA CALENDARIO COMPRAS ---
+    function renderComprasPorFecha() {
+      let fechaSel = document.getElementById('filtroFechaCompras').value;
+      let compras = datosSucursalLocal.compras || [];
+      let filtradas = compras.filter(c => {
+        let fStr = c.fecha ? c.fecha.slice(0, 10) : new Date(c.id).toISOString().slice(0, 10);
+        return fStr === fechaSel;
+      });
+
+      let sumaFecha = filtradas.reduce((acc, c) => acc + (c.monto || 0), 0);
+      document.getElementById('lblTotalComprasFechaSel').innerText = `$${sumaFecha.toFixed(2)}`;
+
+      document.getElementById('tablaComprasFechaBody').innerHTML = filtradas.map(c => `
+        <tr>
+          <td>${new Date(c.id).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</td>
+          <td><b>${c.proveedor}</b></td>
+          <td style="color: var(--red-btn); font-weight: bold;">-$${(c.monto || 0).toFixed(2)}</td>
+          <td>
+            ${c.fotoFactura ? `<button onclick="abrirVisorFoto('${c.fotoFactura}')" style="background:rgba(56,189,248,0.2); border:1px solid var(--accent-blue); color:var(--accent-blue); padding:4px 8px; border-radius:6px; cursor:pointer; font-size:10px; font-weight:bold;">📄 Ver Foto</button>` : '<span style="color:var(--text-muted); font-size:10px;">Sin foto</span>'}
+          </td>
+        </tr>
+      `).join('') || `<tr><td colspan="4">Sin compras registradas el ${fechaSel}.</td></tr>`;
+    }
+
     function renderVistaCajero() {
       document.getElementById('lblNombreSucursal').innerText = SUCURSAL_ACTIVA.replace('_', ' ').toUpperCase();
       let sucData = datosSucursalLocal;
 
-      // 1. CÁLCULO DE SALDOS FILTRADOS ESTRICTAMENTE POR EL CICLO ACTUAL (corteComprasTs)
       let saldoInicial = sucData.saldoAsignado !== undefined ? Number(sucData.saldoAsignado) : 3500.00;
       let corteComp = sucData.corteComprasTs || 0;
       let corteVent = sucData.corteVentasTs || 0;
@@ -759,7 +993,6 @@
       document.getElementById('lblSaldoRestante').innerText = `$${saldoRestante.toFixed(2)}`;
       document.getElementById('lblSaldoRestante').style.color = saldoRestante < 0 ? 'var(--red-btn)' : 'var(--green-corte)';
 
-      // 2. RENDERIZAR SELECT DE CAJEROS
       let cajerosList = sucData.cajeros || ["Cajero General"];
       let selectCajero = document.getElementById('vCajero');
       let cajeroActualSeleccionado = selectCajero.value;
@@ -768,7 +1001,6 @@
         selectCajero.value = cajeroActualSeleccionado;
       }
 
-      // 3. CÁLCULO DE VENTAS FILTRADAS POR EL CICLO ACTUAL
       let ventasList = (sucData.ventas || []).filter(v => v.id >= corteVent);
       let efecTot = ventasList.filter(v => v.metodoPago === 'efectivo').reduce((a, b) => a + b.total, 0);
       let tarjNetoTot = ventasList.filter(v => v.metodoPago === 'tarjeta').reduce((a, b) => a + b.montoNeto, 0);
@@ -778,23 +1010,20 @@
       document.getElementById('lblTarjNeto').innerText = `$${tarjNetoTot.toFixed(2)}`;
       document.getElementById('lblTotalVentasSuma').innerText = `$${sumaTotalVentas.toFixed(2)}`;
 
-      // Tabla Ventas del Ciclo Actual
-      document.getElementById('tablaVentasHoyBody').innerHTML = ventasList.map(v => `
-        <tr>
-          <td>${new Date(v.id).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</td>
-          <td><b>${v.metodoPago.toUpperCase()}</b> (${v.cajero || 'General'})</td>
-          <td style="color: ${v.metodoPago === 'tarjeta' ? 'var(--accent-blue)' : 'var(--green-corte)'}; font-weight: bold;">+$${(v.metodoPago === 'tarjeta' ? v.montoNeto : v.total).toFixed(2)}</td>
-        </tr>
-      `).join('') || '<tr><td colspan="3">Sin ventas en este ciclo.</td></tr>';
+      let hoy = new Date().toISOString().slice(0, 10);
+      if(!document.getElementById('filtroFechaVentas').value) {
+        document.getElementById('filtroFechaVentas').value = hoy;
+      }
+      if(!document.getElementById('filtroFechaCompras').value) {
+        document.getElementById('filtroFechaCompras').value = hoy;
+      }
+      if(!document.getElementById('inputFechaRecibir').value) {
+        document.getElementById('inputFechaRecibir').value = hoy;
+      }
 
-      // Tabla Compras del Ciclo Actual (SOLO MUESTRA LAS NUEVAS, OCULTANDO LAS VIEJAS)
-      document.getElementById('tablaComprasHoyBody').innerHTML = comprasActuales.map(c => `
-        <tr>
-          <td>${new Date(c.id).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</td>
-          <td><b>${c.proveedor}</b> ${c.factura ? '<small>('+c.factura+')</small>' : ''}</td>
-          <td style="color: var(--red-btn); font-weight: bold;">-$${(c.monto || 0).toFixed(2)}</td>
-        </tr>
-      `).join('') || '<tr><td colspan="3">Sin compras en este ciclo.</td></tr>';
+      renderVentasPorFecha();
+      renderComprasPorFecha();
+      renderRecibirPorFecha();
     }
 
     window.addEventListener('DOMContentLoaded', () => {
