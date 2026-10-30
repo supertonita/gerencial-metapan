@@ -292,6 +292,23 @@
       box-shadow: 0 4px 15px rgba(245, 158, 11, 0.3);
     }
 
+    .btn-action-header {
+      background: rgba(56, 189, 248, 0.2);
+      border: 1px solid var(--accent-blue);
+      color: var(--accent-blue);
+      padding: 10px 14px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 800;
+      cursor: pointer;
+      text-align: center;
+      transition: background 0.2s;
+    }
+
+    .btn-action-header:active {
+      background: rgba(56, 189, 248, 0.35);
+    }
+
     /* TABLAS */
     .table-container {
       overflow-x: auto;
@@ -382,7 +399,7 @@
         <h1>Super Toñita</h1>
         <p>Caja y Operaciones</p>
       </div>
-      <div class="sucursal-tag" id="lblNombreSucursal">METAPAN </div>
+      <div class="sucursal-tag" id="lblNombreSucursal">metapan</div>
     </header>
 
     <!-- MÓDULO VENTAS -->
@@ -427,7 +444,7 @@
       </div>
 
       <div class="glass-card">
-        <h3>💵 Ventas Registradas Hoy</h3>
+        <h3>💵 Ventas Registradas (Ciclo Actual)</h3>
         <div class="table-container">
           <table>
             <thead><tr><th>Hora</th><th>Método / Cajero</th><th>Monto</th></tr></thead>
@@ -450,6 +467,9 @@
         </div>
       </div>
 
+      <!-- BOTÓN PARA CAMBIAR SALDO Y REINICIAR CICLO -->
+      <button class="btn-action-header" onclick="modificarSaldoYReiniciar()">✏️ Cambiar Saldo / Nuevo Corte</button>
+
       <div class="glass-card">
         <h3>🛒 Registrar Compra a Proveedor</h3>
         <form id="formCajeroCompra" onsubmit="guardarCompraCajero(event)">
@@ -471,7 +491,7 @@
       </div>
 
       <div class="glass-card">
-        <h3>🛒 Compras Registradas Hoy</h3>
+        <h3>🛒 Compras Registradas (Ciclo Actual)</h3>
         <div class="table-container">
           <table>
             <thead><tr><th>Hora</th><th>Proveedor / Factura</th><th>Monto</th></tr></thead>
@@ -554,7 +574,7 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
 
-    let datosSucursalLocal = { saldoAsignado: 3500.00, compras: [], ventas: [], agenda: [], proveedores: ["Distribuidora La Toñita", "Lácteos San Carlos"], cajeros: ["Francisco", "María"] };
+    let datosSucursalLocal = { saldoAsignado: 3500.00, corteComprasTs: 0, corteVentasTs: 0, compras: [], ventas: [], agenda: [], proveedores: ["Distribuidora La Toñita", "Lácteos San Carlos"], cajeros: ["Francisco", "María"] };
 
     db.collection('sucursales').doc(SUCURSAL_ACTIVA).onSnapshot(doc => {
       if (doc.exists) {
@@ -591,6 +611,18 @@
         let hoy = new Date().toISOString().slice(0, 10);
         inputFecha.value = hoy;
         renderRecibirPorFecha();
+      }
+    }
+
+    function modificarSaldoYReiniciar() {
+      let actual = datosSucursalLocal.saldoAsignado || 3500;
+      let val = prompt(`Nuevo Saldo Operativo para CORINTO ($):`, actual);
+      if(val !== null && !isNaN(val) && val.trim() !== '') {
+        let nuevoSaldo = parseFloat(val);
+        datosSucursalLocal.saldoAsignado = nuevoSaldo;
+        datosSucursalLocal.corteComprasTs = Date.now(); // Reinicia el ciclo ignorando compras anteriores
+        guardarEnNube();
+        alert(`¡Saldo actualizado a $${nuevoSaldo.toFixed(2)} y ciclo de compras reiniciado limpiamente!`);
       }
     }
 
@@ -645,7 +677,6 @@
       if(!datosSucursalLocal.compras) datosSucursalLocal.compras = [];
       datosSucursalLocal.compras.unshift(nuevaCompra);
 
-      // Sincronizar proveedor automáticamente si es nuevo
       if(!datosSucursalLocal.proveedores) datosSucursalLocal.proveedores = [];
       if(proveedor && !datosSucursalLocal.proveedores.includes(proveedor)) {
         datosSucursalLocal.proveedores.push(proveedor);
@@ -715,16 +746,20 @@
       document.getElementById('lblNombreSucursal').innerText = SUCURSAL_ACTIVA.replace('_', ' ').toUpperCase();
       let sucData = datosSucursalLocal;
 
-      // 1. CÁLCULO DE SALDOS PARA COMPRAS (Sincronizado con Firebase)
+      // 1. CÁLCULO DE SALDOS FILTRADOS ESTRICTAMENTE POR EL CICLO ACTUAL (corteComprasTs)
       let saldoInicial = sucData.saldoAsignado !== undefined ? Number(sucData.saldoAsignado) : 3500.00;
-      let totalComprasGeneral = (sucData.compras || []).reduce((acc, c) => acc + (c.monto || 0), 0);
-      let saldoRestante = saldoInicial - totalComprasGeneral;
+      let corteComp = sucData.corteComprasTs || 0;
+      let corteVent = sucData.corteVentasTs || 0;
+
+      let comprasActuales = (sucData.compras || []).filter(c => c.id >= corteComp);
+      let totalComprasCiclo = comprasActuales.reduce((acc, c) => acc + (c.monto || 0), 0);
+      let saldoRestante = saldoInicial - totalComprasCiclo;
 
       document.getElementById('lblSaldoInicial').innerText = `$${saldoInicial.toFixed(2)}`;
       document.getElementById('lblSaldoRestante').innerText = `$${saldoRestante.toFixed(2)}`;
       document.getElementById('lblSaldoRestante').style.color = saldoRestante < 0 ? 'var(--red-btn)' : 'var(--green-corte)';
 
-      // 2. RENDERIZAR SELECT DE CAJEROS SEGÚN FIREBASE
+      // 2. RENDERIZAR SELECT DE CAJEROS
       let cajerosList = sucData.cajeros || ["Cajero General"];
       let selectCajero = document.getElementById('vCajero');
       let cajeroActualSeleccionado = selectCajero.value;
@@ -733,8 +768,8 @@
         selectCajero.value = cajeroActualSeleccionado;
       }
 
-      // 3. CÁLCULO DE VENTAS
-      let ventasList = sucData.ventas || [];
+      // 3. CÁLCULO DE VENTAS FILTRADAS POR EL CICLO ACTUAL
+      let ventasList = (sucData.ventas || []).filter(v => v.id >= corteVent);
       let efecTot = ventasList.filter(v => v.metodoPago === 'efectivo').reduce((a, b) => a + b.total, 0);
       let tarjNetoTot = ventasList.filter(v => v.metodoPago === 'tarjeta').reduce((a, b) => a + b.montoNeto, 0);
       let sumaTotalVentas = ventasList.reduce((a, b) => a + (b.metodoPago === 'tarjeta' ? b.montoNeto : b.total), 0);
@@ -743,31 +778,23 @@
       document.getElementById('lblTarjNeto').innerText = `$${tarjNetoTot.toFixed(2)}`;
       document.getElementById('lblTotalVentasSuma').innerText = `$${sumaTotalVentas.toFixed(2)}`;
 
-      let hoyStr = new Date().toISOString().slice(0, 10);
-
-      // Tabla Ventas de Hoy
-      let ventasHoy = ventasList.filter(v => v.fecha && v.fecha.startsWith(hoyStr));
-      ventasHoy.sort((a, b) => b.fecha.localeCompare(a.fecha));
-      
-      document.getElementById('tablaVentasHoyBody').innerHTML = ventasHoy.map(v => `
+      // Tabla Ventas del Ciclo Actual
+      document.getElementById('tablaVentasHoyBody').innerHTML = ventasList.map(v => `
         <tr>
-          <td>${new Date(v.fecha).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</td>
+          <td>${new Date(v.id).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</td>
           <td><b>${v.metodoPago.toUpperCase()}</b> (${v.cajero || 'General'})</td>
           <td style="color: ${v.metodoPago === 'tarjeta' ? 'var(--accent-blue)' : 'var(--green-corte)'}; font-weight: bold;">+$${(v.metodoPago === 'tarjeta' ? v.montoNeto : v.total).toFixed(2)}</td>
         </tr>
-      `).join('') || '<tr><td colspan="3">Sin ventas registradas hoy.</td></tr>';
+      `).join('') || '<tr><td colspan="3">Sin ventas en este ciclo.</td></tr>';
 
-      // Tabla Compras de Hoy
-      let comprasHoy = (sucData.compras || []).filter(c => c.fecha && c.fecha.startsWith(hoyStr));
-      comprasHoy.sort((a, b) => b.fecha.localeCompare(a.fecha));
-
-      document.getElementById('tablaComprasHoyBody').innerHTML = comprasHoy.map(c => `
+      // Tabla Compras del Ciclo Actual (SOLO MUESTRA LAS NUEVAS, OCULTANDO LAS VIEJAS)
+      document.getElementById('tablaComprasHoyBody').innerHTML = comprasActuales.map(c => `
         <tr>
-          <td>${new Date(c.fecha).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</td>
+          <td>${new Date(c.id).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</td>
           <td><b>${c.proveedor}</b> ${c.factura ? '<small>('+c.factura+')</small>' : ''}</td>
           <td style="color: var(--red-btn); font-weight: bold;">-$${(c.monto || 0).toFixed(2)}</td>
         </tr>
-      `).join('') || '<tr><td colspan="3">Sin compras registradas hoy.</td></tr>';
+      `).join('') || '<tr><td colspan="3">Sin compras en este ciclo.</td></tr>';
     }
 
     window.addEventListener('DOMContentLoaded', () => {
